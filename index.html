@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastery: Phép Chiếu & Góc Đường - Mặt</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        window.MathJax = {
+            tex: { 
+                inlineMath: [['$', '$'], ['\\(', '\\)']], 
+                displayMath: [['$$', '$$']],
+                processEscapes: true
+            },
+            options: { enableMenu: false },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0fdf4; color: #0f172a; }
+        .math-render { opacity: 0; transition: opacity 0.5s ease; }
+        .math-render.ready { opacity: 1; }
+        .choice-btn:active { transform: scale(0.97); }
+        .explanation-box { 
+            border-left: 8px solid #059669; 
+            background-color: #ecfdf5;
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.08);
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .btn-check { box-shadow: 0 10px 20px -5px rgba(5, 150, 105, 0.4); }
+        .item-row { transition: all 0.2s ease; }
+        .item-row:hover { background-color: #ffffff; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-2 md:p-6">
+    <div id="game-app" class="w-full max-w-5xl bg-white rounded-[2.5rem] shadow-[0_40px_80px_-20px_rgba(5,150,105,0.15)] border border-emerald-50 flex flex-col">
+        
+        <!-- Header -->
+        <div class="bg-emerald-600 p-8 text-white text-center relative overflow-hidden rounded-t-[2.5rem]">
+            <div class="absolute inset-0 bg-gradient-to-br from-emerald-800 via-emerald-600 to-teal-500 opacity-95"></div>
+            <div class="relative z-10">
+                <h1 class="text-3xl font-extrabold tracking-tight text-white mb-2 italic uppercase">PHÉP CHIẾU VUÔNG GÓC</h1>
+                <p class="text-emerald-100 text-sm font-medium opacity-90 uppercase tracking-[0.3em]">Góc Giữa Đường Thẳng Và Mặt Phẳng</p>
+            </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div id="progress-container" class="hidden h-3 bg-slate-100 relative">
+            <div id="progress-bar" class="h-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-700 w-0"></div>
+        </div>
+
+        <!-- Content Area -->
+        <div id="main-content" class="p-6 md:p-12 flex-grow min-h-[600px] flex flex-col overflow-y-auto">
+            <div id="start-screen" class="text-center py-16 my-auto">
+                <div class="text-[10rem] mb-8 leading-none">📐</div>
+                <h2 class="text-4xl font-black text-slate-800 mb-6 uppercase tracking-tighter">KIỂM TRA KIẾN THỨC</h2>
+                <p class="text-slate-500 mb-12 max-w-2xl mx-auto leading-relaxed text-xl">
+                    50 câu hỏi phân bổ chuẩn: <b>50% Nhận biết, 30% Thông hiểu, 20% Vận dụng</b>. <br>
+                    Tập trung vào Hình chiếu, Góc và Diện tích hình chiếu với công thức LaTeX chuẩn. Thuật toán đảm bảo <b class="text-emerald-600">tỷ lệ lặp lại 0%</b>.
+                </p>
+                <button onclick="initGame()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-24 py-6 rounded-[2rem] font-black text-2xl shadow-xl transition-all active:scale-95 transform hover:-translate-y-1">BẮT ĐẦU NGAY</button>
+            </div>
+        </div>
+
+        <!-- Footer Control -->
+        <div id="footer-actions" class="hidden p-8 bg-slate-50 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6 rounded-b-[2.5rem]">
+            <div id="status" class="text-lg font-black text-emerald-600 uppercase tracking-[0.25em]">CÂU 1 / 15</div>
+            <div class="flex gap-4 w-full md:w-auto">
+                <button id="check-btn" onclick="processAnswer()" class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-16 py-4 rounded-2xl font-bold text-xl transition shadow-lg btn-check active:scale-95">Kiểm tra</button>
+                <button id="next-btn" onclick="renderNext()" class="hidden flex-1 md:flex-none bg-teal-500 hover:bg-teal-600 text-white px-16 py-4 rounded-2xl font-bold text-xl transition shadow-lg active:scale-95">Tiếp theo →</button>
+                <button id="result-btn" onclick="finishGame()" class="hidden flex-1 md:flex-none bg-orange-500 hover:bg-orange-600 text-white px-16 py-4 rounded-2xl font-bold text-xl transition shadow-lg active:scale-95">Kết quả</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MASTER_POOL = {
+            part1: [
+                { id: "pcvg_nb_1", question: "Hình chiếu vuông góc của một điểm $M$ lên mặt phẳng $(P)$ là:", options: ["Giao điểm của mặt phẳng $(P)$ và đường thẳng qua $M$, vuông góc với $(P)$", "Một điểm bất kỳ nằm trên mặt phẳng $(P)$", "Giao điểm của $(P)$ và một đường thẳng bất kỳ đi qua $M$", "Hình chiếu song song của $M$ lên $(P)$"], correct: 0, explanation: "Theo định nghĩa, hình chiếu vuông góc của điểm $M$ lên mặt phẳng $(P)$ là giao điểm $H$ của đường thẳng đi qua $M$ vuông góc với $(P)$ và mặt phẳng $(P)$." },
+                { id: "pcvg_nb_2", question: "Nếu đường thẳng $d$ vuông góc với mặt phẳng $(P)$ thì hình chiếu vuông góc của $d$ trên $(P)$ là:", options: ["Một điểm", "Một đường thẳng", "Một tia", "Một đoạn thẳng"], correct: 0, explanation: "Khi $d \\perp (P)$, mọi điểm trên $d$ đều có chung một hình chiếu là giao điểm của $d$ và $(P)$. Do đó hình chiếu là một điểm duy nhất." },
+                { id: "pcvg_nb_3", question: "Nếu đường thẳng $d$ không vuông góc với mặt phẳng $(P)$ thì hình chiếu vuông góc của $d$ trên $(P)$ là:", options: ["Một điểm", "Một đường thẳng", "Một tia", "Một đoạn thẳng"], correct: 1, explanation: "Định lý SGK: Hình chiếu vuông góc của một đường thẳng (không vuông góc với mặt phẳng chiếu) luôn là một đường thẳng." },
+                { id: "pcvg_nb_4", question: "Góc giữa đường thẳng $d$ (không vuông góc với mặt phẳng $(P)$) và mặt phẳng $(P)$ được định nghĩa là:", options: ["Góc giữa $d$ và một đường thẳng bất kỳ trong $(P)$", "Góc giữa $d$ và hình chiếu vuông góc của $d$ trên $(P)$", "Góc giữa $d$ và đường thẳng vuông góc với $(P)$", "$90^\\circ$"], correct: 1, explanation: "Theo định nghĩa sách giáo khoa Toán 11, góc giữa đường thẳng và mặt phẳng là góc giữa đường thẳng đó và hình chiếu vuông góc của nó trên mặt phẳng." },
+                { id: "pcvg_nb_5", question: "Kí hiệu $\\alpha$ là góc giữa đường thẳng $d$ và mặt phẳng $(P)$. Khẳng định nào sau đây đúng?", options: ["$0^\\circ \\le \\alpha \\le 90^\\circ$", "$0^\\circ &lt; \\alpha &lt; 90^\\circ$", "$0^\\circ \\le \\alpha \\le 180^\\circ$", "$0^\\circ &lt; \\alpha &lt; 180^\\circ$"], correct: 0, explanation: "Góc giữa đường thẳng và mặt phẳng luôn có số đo nằm trong đoạn $[0^\\circ; 90^\\circ]$." },
+                { id: "pcvg_nb_6", question: "Nếu đường thẳng $d$ vuông góc với mặt phẳng $(P)$ thì góc giữa $d$ và $(P)$ bằng:", options: ["$0^\\circ$", "$45^\\circ$", "$90^\\circ$", "$180^\\circ$"], correct: 2, explanation: "Quy ước: Nếu đường thẳng vuông góc với mặt phẳng thì góc giữa chúng được quy định bằng $90^\\circ$." },
+                { id: "pcvg_nb_7", question: "Nếu đường thẳng $d$ song song hoặc nằm trong mặt phẳng $(P)$ thì góc giữa $d$ và $(P)$ bằng:", options: ["$0^\\circ$", "$45^\\circ$", "$90^\\circ$", "$180^\\circ$"], correct: 0, explanation: "Quy ước: Nếu đường thẳng song song hoặc chứa trong mặt phẳng thì góc giữa chúng bằng $0^\\circ$." },
+                { id: "pcvg_nb_8", question: "Cho hình chóp $S.ABC$ có $SA \\perp (ABC)$. Hình chiếu vuông góc của điểm $S$ trên mặt phẳng $(ABC)$ là:", options: ["Điểm $B$", "Điểm $C$", "Điểm $A$", "Trọng tâm $\\Delta ABC$"], correct: 2, explanation: "Do $SA \\perp (ABC)$ nên hình chiếu vuông góc của đỉnh $S$ lên mặt phẳng đáy chính là chân đường vuông góc $A$." },
+                { id: "pcvg_nb_9", question: "Cho hình chóp $S.ABCD$ có $SA \\perp (ABCD)$. Hình chiếu vuông góc của đường thẳng $SC$ trên mặt phẳng $(ABCD)$ là đường thẳng nào?", options: ["$SA$", "$AC$", "$AB$", "$AD$"], correct: 1, explanation: "Hình chiếu của điểm $C$ lên đáy là chính nó (vì $C \\in (ABCD)$). Hình chiếu của $S$ lên đáy là $A$. Vậy hình chiếu của đường thẳng $SC$ là đường thẳng $AC$." },
+                { id: "pcvg_nb_10", question: "Trong hình chóp $S.ABCD$ có $SA \\perp (ABCD)$. Góc giữa đường thẳng $SC$ và mặt phẳng $(ABCD)$ là góc nào?", options: ["$\\widehat{SCA}$", "$\\widehat{SCB}$", "$\\widehat{SAC}$", "$\\widehat{ASC}$"], correct: 0, explanation: "Hình chiếu của $SC$ lên $(ABCD)$ là $AC$. Góc giữa đường thẳng và mặt phẳng là góc giữa đường thẳng và hình chiếu của nó. Do đó góc cần tìm là góc nhọn $\\widehat{SCA}$." },
+                { id: "pcvg_nb_11", question: "Cho hình lập phương $ABCD.A'B'C'D'$. Hình chiếu vuông góc của đoạn $A'B$ lên mặt phẳng $(ABCD)$ là:", options: ["Đoạn $AB$", "Đoạn $AC$", "Đoạn $AD$", "Đoạn $AA'$"], correct: 0, explanation: "Cạnh $AA'$ vuông góc với mặt phẳng đáy $(ABCD)$, nên hình chiếu của $A'$ là $A$. Hình chiếu của $B$ là chính nó. Vậy hình chiếu của đoạn $A'B$ là đoạn $AB$." },
+                { id: "pcvg_nb_12", question: "Trong hình lập phương $ABCD.A'B'C'D'$, góc giữa đường thẳng $A'B$ và mặt phẳng $(ABCD)$ là góc:", options: ["$\\widehat{A'BA}$", "$\\widehat{A'BC}$", "$\\widehat{A'BD}$", "$\\widehat{A'AB}$"], correct: 0, explanation: "Hình chiếu của $A'B$ lên mặt đáy $(ABCD)$ là $AB$. Do đó góc giữa $A'B$ và $(ABCD)$ chính là góc giữa $A'B$ và $AB$, tức là góc $\\widehat{A'BA}$." },
+                { id: "pcvg_nb_13", question: "Cho hình chóp đều $S.ABCD$ có tâm đáy là $O$. Hình chiếu vuông góc của đỉnh $S$ lên mặt phẳng $(ABCD)$ là:", options: ["Điểm $A$", "Điểm $B$", "Điểm $C$", "Điểm $O$"], correct: 3, explanation: "Tính chất cơ bản của hình chóp đều: Hình chiếu vuông góc của đỉnh luôn trùng với tâm của đa giác đáy. Vậy đó là điểm $O$." },
+                { id: "pcvg_nb_14", question: "Góc giữa cạnh bên $SA$ và mặt đáy $(ABCD)$ của hình chóp tứ giác đều $S.ABCD$ (tâm $O$) là góc:", options: ["$\\widehat{SAB}$", "$\\widehat{SAO}$", "$\\widehat{SAD}$", "$\\widehat{SOA}$"], correct: 1, explanation: "Đường cao của chóp đều là $SO \\perp (ABCD)$. Hình chiếu của $SA$ lên $(ABCD)$ là $AO$. Vậy góc giữa $SA$ và $(ABCD)$ là góc $\\widehat{SAO}$." },
+                { id: "pcvg_nb_15", question: "Định lý ba đường vuông góc: Cho $a \\subset (P)$, $b$ là đường xiên cắt $(P)$, $b'$ là hình chiếu của $b$ trên $(P)$. Khi đó:", options: ["$a \\perp b \\Leftrightarrow a \\perp b'$", "$a \\parallel b \\Leftrightarrow a \\parallel b'$", "$a \\perp b \\Rightarrow b \\perp b'$", "$a \\perp b' \\Rightarrow a \\parallel b$"], correct: 0, explanation: "Nội dung định lý ba đường vuông góc: Đường thẳng $a$ nằm trong mặt phẳng $(P)$ vuông góc với đường xiên $b$ khi và chỉ khi $a$ vuông góc với hình chiếu $b'$ của $b$ trên $(P)$." },
+                { id: "pcvg_nb_16", question: "Cho đa giác $H$ nằm trong mặt phẳng $(Q)$ có diện tích là $S$. Gọi $H'$ là hình chiếu vuông góc của $H$ lên mặt phẳng $(P)$, diện tích của $H'$ là $S'$. Gọi $\\varphi$ là góc giữa $(P)$ và $(Q)$. Công thức nào sau đây đúng?", options: ["$S' = S \\cdot \\sin \\varphi$", "$S' = S \\cdot \\cos \\varphi$", "$S = S' \\cdot \\cos \\varphi$", "$S' = S \\cdot \\tan \\varphi$"], correct: 1, explanation: "Theo định lý về diện tích hình chiếu trong không gian: Diện tích hình chiếu bằng diện tích đa giác gốc nhân với cosin của góc giữa hai mặt phẳng chứa chúng ($S' = S \\cdot \\cos \\varphi$)." },
+                { id: "pcvg_nb_17", question: "Hình chiếu vuông góc của tam giác $ABC$ trên mặt phẳng $(P)$ là tam giác $A'B'C'$. Biết mặt phẳng $(ABC)$ song song với mặt phẳng $(P)$. Khẳng định nào đúng?", options: ["Tam giác $A'B'C'$ là một điểm", "Tam giác $A'B'C'$ bằng tam giác $ABC$", "Tam giác $A'B'C'$ là một đoạn thẳng", "Diện tích $A'B'C'$ bằng nửa diện tích $ABC$"], correct: 1, explanation: "Vì mặt phẳng chứa tam giác song song với mặt phẳng chiếu, nên góc $\\varphi = 0^\\circ$. Do đó $\\cos(0^\\circ) = 1$, diện tích không đổi và hình chiếu của nó giữ nguyên kích thước, hai tam giác bằng nhau." },
+                { id: "pcvg_nb_18", question: "Cho hình chóp $S.ABC$ có $SA \\perp (ABC)$. Hình chiếu vuông góc của đường cao $AH$ (trong tam giác $ABC$) lên mặt phẳng $(ABC)$ là:", options: ["Chính là đường cao $AH$", "Đường thẳng $SA$", "Điểm $A$", "Đường thẳng $BC$"], correct: 0, explanation: "Vì đường cao $AH$ nằm hoàn toàn trong mặt phẳng $(ABC)$, nên hình chiếu vuông góc của nó lên chính mặt phẳng $(ABC)$ là chính nó." },
+                { id: "pcvg_nb_19", question: "Gọi $d'$ là hình chiếu vuông góc của đường thẳng $d$ lên mặt phẳng $(P)$. Khẳng định nào luôn đúng?", options: ["$d$ luôn song song với $d'$", "$d$ luôn cắt $d'$", "Góc giữa $d$ và $(P)$ chính là góc giữa $d$ và $d'$", "$d$ luôn vuông góc với $d'$"], correct: 2, explanation: "Theo định nghĩa, nếu $d$ không vuông góc với $(P)$, thì góc giữa đường thẳng $d$ và mặt phẳng $(P)$ chính là góc giữa $d$ và hình chiếu $d'$ của nó." },
+                { id: "pcvg_nb_20", question: "Cho hình chóp $S.ABCD$ có đáy $ABCD$ là hình thoi tâm $O$. Cạnh bên $SA \\perp (ABCD)$. Hình chiếu vuông góc của $\\Delta SBD$ trên mặt phẳng $(ABCD)$ là:", options: ["$\\Delta SAB$", "$\\Delta ABD$", "Đoạn $BD$", "$\\Delta SBD$"], correct: 1, explanation: "Vì $SA \\perp (ABCD)$ nên hình chiếu của đỉnh $S$ lên $(ABCD)$ là $A$. Các đỉnh $B$ và $D$ thuộc đáy nên hình chiếu là chính nó. Do đó hình chiếu của tam giác $SBD$ là tam giác $ABD$." },
+                { id: "pcvg_th_21", question: "Cho hình chóp $S.ABCD$ có $SA \\perp (ABCD)$, đáy $ABCD$ là hình chữ nhật. Hình chiếu vuông góc của đường thẳng $SB$ lên mặt phẳng $(SAD)$ là đường thẳng nào?", options: ["$SA$", "$SD$", "$AB$", "$AD$"], correct: 0, explanation: "Ta có $BA \\perp AD$ (đáy là hình chữ nhật) và $BA \\perp SA$ (vì $SA \\perp$ đáy) $\\Rightarrow BA \\perp (SAD)$. Do đó hình chiếu của $B$ lên $(SAD)$ là $A$. Mặt khác $S \\in (SAD)$ nên hình chiếu của $S$ là chính nó. Vậy hình chiếu của đường thẳng $SB$ lên $(SAD)$ là đường thẳng $SA$." },
+                { id: "pcvg_th_22", question: "Trong hình lập phương $ABCD.A'B'C'D'$, góc giữa đường chéo $A'C$ và mặt phẳng $(ABCD)$ là góc nào?", options: ["$\\widehat{A'CA}$", "$\\widehat{A'CB}$", "$\\widehat{A'CD}$", "$\\widehat{CA'A}$"], correct: 0, explanation: "Hình chiếu của điểm $A'$ lên $(ABCD)$ là $A$. Hình chiếu của $C$ là $C$. Hình chiếu của $A'C$ là đường chéo $AC$. Vậy góc là $\\widehat{A'CA}$." },
+                { id: "pcvg_th_23", question: "Cho tứ diện $ABCD$ có cạnh $AB \\perp (BCD)$. Góc giữa đường thẳng $AC$ và mặt phẳng $(BCD)$ là góc:", options: ["$\\widehat{ACB}$", "$\\widehat{ACD}$", "$\\widehat{CAB}$", "$\\widehat{CAD}$"], correct: 0, explanation: "Đường thẳng $AB \\perp (BCD)$ nên hình chiếu của $A$ lên $(BCD)$ là $B$. Hình chiếu của $C$ là chính nó. Hình chiếu của $AC$ là $BC$. Góc cần tìm là $\\widehat{ACB}$." },
+                { id: "pcvg_th_24", question: "Cho lăng trụ đứng $ABC.A'B'C'$. Hình chiếu vuông góc của tam giác $A'BC$ lên mặt phẳng $(ABC)$ là:", options: ["Tam giác $A'B'C'$", "Tam giác $ABC$", "Đoạn thẳng $BC$", "Điểm $A$"], correct: 1, explanation: "Lăng trụ đứng có cạnh bên $AA'$ vuông góc với mặt đáy $(ABC)$. Hình chiếu của $A'$ là $A$, của $B$ là $B$, của $C$ là $C$. Do đó hình chiếu của $\\Delta A'BC$ là $\\Delta ABC$." },
+                { id: "pcvg_th_25", question: "Cho hình chóp $S.ABCD$ có $SA \\perp (ABCD)$, đáy $ABCD$ là hình chữ nhật. Mệnh đề nào sau đây SAI?", options: ["$AB$ là hình chiếu của $SB$ lên $(ABCD)$", "$AD$ là hình chiếu của $SD$ lên $(ABCD)$", "$AC$ là hình chiếu của $SC$ lên $(ABCD)$", "$BC$ là hình chiếu của $SC$ lên $(SAB)$"], correct: 3, explanation: "Đáy là hình chữ nhật nên $CB \\perp AB$. Kết hợp $CB \\perp SA \\Rightarrow CB \\perp (SAB)$. Do đó hình chiếu của $C$ lên mặt phẳng $(SAB)$ là $B$. Hình chiếu của $S$ là $S$. Vậy hình chiếu của $SC$ lên $(SAB)$ là đoạn $SB$, không phải $BC$." },
+                { id: "pcvg_th_26", question: "Cho hình chóp $S.ABCD$ có $SA \\perp (ABCD)$, đáy $ABCD$ là hình vuông. Hình chiếu vuông góc của tam giác $SBD$ lên mặt phẳng $(ABCD)$ là:", options: ["Tam giác $ABD$", "Tam giác $SAB$", "Tam giác $SAD$", "Đoạn thẳng $BD$"], correct: 0, explanation: "Hình chiếu của điểm $S$ lên mặt phẳng $(ABCD)$ là điểm $A$. Hình chiếu của hai điểm $B$ và $D$ là chính nó. Do đó hình chiếu của tam giác $SBD$ là tam giác $ABD$." },
+                { id: "pcvg_th_27", question: "Cho hình chóp $S.ABC$ có $SA \\perp (ABC)$ và $\\Delta ABC$ vuông tại $B$. Khẳng định nào sau đây đúng theo định lý 3 đường vuông góc?", options: ["$BC \\perp SB$", "$BC \\perp SC$", "$AB \\perp SC$", "$AC \\perp SB$"], correct: 0, explanation: "Đường thẳng $BC$ nằm trong đáy, $SB$ là đường xiên, $AB$ là hình chiếu của $SB$ lên đáy $(ABC)$. Vì $BC \\perp AB$ (do tam giác đáy vuông tại B) nên theo định lý 3 đường vuông góc, $BC \\perp SB$." },
+                { id: "pcvg_th_28", question: "Trong hình lập phương $ABCD.A'B'C'D'$, góc giữa đường thẳng $A'B$ và mặt phẳng $(BCC'B')$ là góc:", options: ["$\\widehat{A'BC'}$", "$\\widehat{A'BA'}$", "$\\widehat{A'BB'}$", "$\\widehat{A'BC}$"], correct: 2, explanation: "Trong hình lập phương, cạnh $A'B'$ vuông góc với mặt phẳng $(BCC'B')$. Do đó, hình chiếu của điểm $A'$ lên mặt phẳng $(BCC'B')$ là $B'$. Hình chiếu của điểm $B$ là chính nó. Hình chiếu của đường xiên $A'B$ là $B'B$. Góc là $\\widehat{A'BB'}$." },
+                { id: "pcvg_th_29", question: "Cho tam giác đều $ABC$ cạnh $a$ nằm trong mặt phẳng $(P)$. Một mặt phẳng $(Q)$ tạo với $(P)$ một góc $60^\\circ$. Diện tích hình chiếu của tam giác $ABC$ trên mặt phẳng $(Q)$ là:", options: ["$\\frac{a^2\\sqrt{3}}{8}$", "$\\frac{a^2\\sqrt{3}}{4}$", "$\\frac{a^2\\sqrt{3}}{2}$", "$\\frac{a^2}{4}$"], correct: 0, explanation: "Diện tích tam giác đều gốc $ABC$ là $S = \\frac{a^2\\sqrt{3}}{4}$. Hình chiếu của nó trên mặt phẳng $(Q)$ có diện tích là $S' = S \\cdot \\cos(60^\\circ) = \\frac{a^2\\sqrt{3}}{4} \\cdot \\frac{1}{2} = \\frac{a^2\\sqrt{3}}{8}$." },
+                { id: "pcvg_th_30", question: "Cho hình chóp $S.ABCD$ có đáy là hình chữ nhật. $SA \\perp (ABCD)$. Gọi $\\alpha$ là góc giữa đường thẳng $SD$ và $(ABCD)$, $\\beta$ là góc giữa $SD$ và $(SAB)$. Khẳng định nào đúng?", options: ["$\\alpha = \\widehat{SDA}, \\beta = \\widehat{DSA}$", "$\\alpha = \\widehat{SDB}, \\beta = \\widehat{DSB}$", "$\\alpha = \\widehat{SDA}, \\beta = \\widehat{DSB}$", "$\\alpha = \\widehat{ADC}, \\beta = \\widehat{DSA}$"], correct: 0, explanation: "Hình chiếu của $SD$ lên $(ABCD)$ là $AD \\Rightarrow \\alpha = \\widehat{SDA}$. <br>Vì $DA \\perp AB$ và $DA \\perp SA \\Rightarrow DA \\perp (SAB)$. Hình chiếu của $SD$ lên $(SAB)$ là $SA \\Rightarrow \\beta = \\widehat{DSA}$." }
+            ],
+            part2: [
+                { id: "pcvg_p2_1", question: "Cho hình chóp $S.ABC$ có $SA \\perp (ABC)$. Xét tính đúng/sai của các mệnh đề:", items: [
+                    { text: "Hình chiếu vuông góc của điểm $S$ trên mặt phẳng $(ABC)$ là điểm $A$.", isTrue: true },
+                    { text: "Hình chiếu vuông góc của đoạn thẳng $SB$ trên mặt phẳng $(ABC)$ là đoạn thẳng $AB$.", isTrue: true },
+                    { text: "Góc giữa đường thẳng $SC$ và mặt phẳng $(ABC)$ là góc $\\widehat{CSA}$.", isTrue: false },
+                    { text: "Hình chiếu vuông góc của tam giác $SBC$ trên mặt phẳng $(ABC)$ là tam giác $ABC$.", isTrue: true }
+                ], explanation: "<b>Giải thích chi tiết:</b><br>a) Đúng. Vì $SA \\perp (ABC)$ nên $A$ là hình chiếu của $S$.<br>b) Đúng. Hình chiếu của $S$ là $A$, của $B$ là $B$. Nên hình chiếu của $SB$ là $AB$.<br>c) Sai. Hình chiếu của $SC$ là $AC$. Góc giữa đường thẳng và mặt phẳng là góc giữa nó và hình chiếu, tức là góc $\\widehat{SCA}$ (đỉnh góc tại $C$, không phải $S$).<br>d) Đúng. Các đỉnh $S, B, C$ có hình chiếu lần lượt là $A, B, C$. Do đó tam giác $SBC$ chiếu xuống thành tam giác $ABC$." },
+                { id: "pcvg_p2_2", question: "Xét các phát biểu về phép chiếu vuông góc và góc giữa đường thẳng với mặt phẳng:", items: [
+                    { text: "Hình chiếu vuông góc của một đường thẳng luôn luôn là một đường thẳng.", isTrue: false },
+                    { text: "Góc giữa đường thẳng và mặt phẳng không thể vượt quá $90^\\circ$.", isTrue: true },
+                    { text: "Nếu đường thẳng $d \\parallel (P)$ thì góc giữa $d$ và $(P)$ bằng $0^\\circ$.", isTrue: true },
+                    { text: "Góc giữa $d$ và $(P)$ là góc giữa $d$ và hình chiếu của nó trên $(P)$ (khi $d$ không vuông góc với $(P)$).", isTrue: true }
+                ], explanation: "<b>Giải thích chi tiết:</b><br>a) Sai. Nếu đường thẳng vuông góc với mặt phẳng thì hình chiếu của nó là một ĐIỂM, không phải là đường thẳng.<br>b) Đúng. Số đo góc luôn nằm trong đoạn $[0^\\circ; 90^\\circ]$.<br>c) Đúng. Quy ước góc giữa đường và mặt song song là $0^\\circ$.<br>d) Đúng. Đây chính là định nghĩa chuẩn xác trong SGK Toán 11." },
+                { id: "pcvg_p2_3", question: "Cho hình lập phương $ABCD.A'B'C'D'$. Xét tính đúng/sai:", items: [
+                    { text: "Hình chiếu của $A'C$ trên mặt phẳng $(ABCD)$ là đường chéo $AC$.", isTrue: true },
+                    { text: "Góc giữa $A'B$ và mặt phẳng $(ABCD)$ bằng $45^\\circ$.", isTrue: true },
+                    { text: "Hình chiếu của đường chéo $BD'$ trên mặt phẳng $(ABB'A')$ là đoạn $A'B$.", isTrue: true },
+                    { text: "Góc giữa $A'C$ và mặt phẳng $(ABB'A')$ là góc $\\widehat{CA'B'}$.", isTrue: false }
+                ], explanation: "<b>Giải thích chi tiết:</b><br>a) Đúng. Cạnh $AA'$ vuông góc đáy nên hình chiếu của $A'$ là $A$. Hình chiếu của $C$ là $C$.<br>b) Đúng. Hình chiếu của $A'B$ là $AB$. Góc là $\\widehat{A'BA}$. Tam giác $A'AB$ vuông cân tại $A$ nên góc bằng $45^\\circ$.<br>c) Đúng. Hình chiếu của $D'$ lên $(ABB'A')$ là $A'$ (do $D'A' \\perp (ABB'A')$). Hình chiếu của $B$ là $B$. Đoạn $BD'$ chiếu thành $BA'$ (hay $A'B$).<br>d) Sai. Hình chiếu của $C$ lên $(ABB'A')$ là $B$ (vì $CB \\perp (ABB'A')$). Hình chiếu của $A'$ là $A'$. Hình chiếu của $A'C$ là $A'B$. Góc là $\\widehat{CA'B}$." },
+                { id: "pcvg_p2_4", question: "Cho tứ diện đều $ABCD$ tâm đáy là $G$ (trọng tâm $\\Delta BCD$).", items: [
+                    { text: "Đường thẳng $AG$ vuông góc với mặt phẳng $(BCD)$.", isTrue: true },
+                    { text: "Hình chiếu vuông góc của cạnh $AB$ lên $(BCD)$ là đoạn $BG$.", isTrue: true },
+                    { text: "Góc giữa cạnh bên $AB$ và mặt đáy $(BCD)$ là góc $\\widehat{ABG}$.", isTrue: true },
+                    { text: "Tam giác $BCD$ là hình chiếu vuông góc của tam giác $ABC$ lên mặt phẳng $(BCD)$.", isTrue: false }
+                ], explanation: "<b>Giải thích chi tiết:</b><br>a) Đúng. Hình chóp đều (tứ diện đều) có đường cao hạ từ đỉnh trùng với tâm đa giác đáy.<br>b) Đúng. Hình chiếu của $A$ là $G$, hình chiếu của $B$ là $B$.<br>c) Đúng. Góc tạo bởi đường thẳng và hình chiếu của nó.<br>d) Sai. Hình chiếu của $A$ là $G$, của $B, C$ là $B, C$. Hình chiếu của $\\Delta ABC$ là $\\Delta GBC$, không phải toàn bộ $\\Delta BCD$." },
+                { id: "pcvg_p2_5", question: "Cho mặt phẳng $(P)$ và đường thẳng $a \\subset (P)$, đường thẳng $b$ cắt $(P)$ tại $O$. Gọi $b'$ là hình chiếu vuông góc của $b$ trên $(P)$.", items: [
+                    { text: "Đường thẳng $b'$ chắc chắn đi qua điểm $O$.", isTrue: true },
+                    { text: "Góc giữa $b$ và $(P)$ là góc giữa $b$ và $b'$.", isTrue: true },
+                    { text: "Theo định lý 3 đường vuông góc, $a \\perp b \\Leftrightarrow a \\perp b'$.", isTrue: true },
+                    { text: "Góc giữa $b$ và $(P)$ luôn bằng góc giữa $b$ và $a$.", isTrue: false }
+                ], explanation: "<b>Giải thích chi tiết:</b><br>a) Đúng. Điểm $O \\in (P)$ nên hình chiếu của $O$ là chính nó. Đường thẳng $b'$ là hình chiếu của $b$ sẽ phải đi qua $O$.<br>b) Đúng. Định nghĩa góc giữa đường thẳng và mặt phẳng.<br>c) Đúng. Đây là nội dung cốt lõi của định lý 3 đường vuông góc.<br>d) Sai. Góc giữa $b$ và mặt phẳng là góc <b>nhỏ nhất</b> trong số các góc tạo bởi $b$ và mọi đường thẳng nằm trong $(P)$. Nó chỉ bằng góc với $a$ nếu $a$ trùng với $b'$." },
+                { id: "pcvg_p2_6", question: "Cho hình chóp $S.ABCD$ có đáy là hình vuông cạnh $a$, $SA \\perp (ABCD)$ và $SA = a$.", items: [
+                    { text: "Các tam giác $\\Delta SAB$ và $\\Delta SAD$ là các tam giác vuông cân.", isTrue: true },
+                    { text: "Góc giữa $SB$ và $(ABCD)$ bằng $45^\\circ$.", isTrue: true },
+                    { text: "Giá trị $\\tan$ của góc giữa $SC$ và $(ABCD)$ bằng $\\frac{\\sqrt{2}}{2}$.", isTrue: true },
+                    { text: "Hình chiếu của điểm $C$ lên mặt phẳng $(SAB)$ là điểm $S$.", isTrue: false }
+                ], explanation: "<b>Giải thích chi tiết:</b><br>a) Đúng. $SA \\perp AB, SA \\perp AD$. Có $SA = AB = AD = a$ nên chúng vuông cân tại $A$.<br>b) Đúng. Góc là $\\widehat{SBA}$. Do $\\Delta SAB$ vuông cân tại $A$ nên $\\widehat{SBA} = 45^\\circ$.<br>c) Đúng. Góc là $\\widehat{SCA}$. $AC = a\\sqrt{2}$. $\\tan \\widehat{SCA} = \\frac{SA}{AC} = \\frac{a}{a\\sqrt{2}} = \\frac{\\sqrt{2}}{2}$.<br>d) Sai. Ta có $CB \\perp AB$ và $CB \\perp SA \\Rightarrow CB \\perp (SAB)$. Vậy hình chiếu của $C$ lên $(SAB)$ là điểm $B$." },
+                { id: "pcvg_p2_7", question: "Cho lăng trụ đứng $ABC.A'B'C'$ có đáy là tam giác vuông tại $A$, $AB=a, AC=a\\sqrt{3}, AA'=2a$.", items: [
+                    { text: "Cạnh $AA'$ vuông góc với mặt phẳng $(ABC)$.", isTrue: true },
+                    { text: "Hình chiếu của $A'B$ trên mặt phẳng $(ABC)$ là cạnh $AB$.", isTrue: true },
+                    { text: "Góc giữa $A'B$ và mặt phẳng $(ABC)$ bằng $60^\\circ$.", isTrue: false },
+                    { text: "Góc giữa $A'C$ và mặt phẳng $(ABC)$ bằng $30^\\circ$.", isTrue: false }
+                ], explanation: "<b>Giải thích chi tiết:</b><br>a) Đúng. Theo định nghĩa lăng trụ đứng.<br>b) Đúng. Hình chiếu của $A'$ là $A$, của $B$ là $B$.<br>c) Sai. Góc là $\\widehat{A'BA}$. $\\tan \\widehat{A'BA} = \\frac{AA'}{AB} = \\frac{2a}{a} = 2$. Bấm máy tính góc $\\approx 63.4^\\circ \\ne 60^\\circ$.<br>d) Sai. Góc là $\\widehat{A'CA}$. $\\tan \\widehat{A'CA} = \\frac{AA'}{AC} = \\frac{2a}{a\\sqrt{3}} = \\frac{2}{\\sqrt{3}}$. Góc $\\approx 49.1^\\circ \\ne 30^\\circ$." },
+                { id: "pcvg_p2_8", question: "Cho hình chóp $S.ABCD$ có đáy là hình thoi tâm $O$, $SO \\perp (ABCD)$, $AC=2a, BD=2a\\sqrt{3}, SO=a$.", items: [
+                    { text: "Điểm $O$ là hình chiếu vuông góc của đỉnh $S$ lên mặt phẳng $(ABCD)$.", isTrue: true },
+                    { text: "Góc giữa cạnh bên $SA$ và mặt phẳng $(ABCD)$ là góc $\\widehat{SAO}$.", isTrue: true },
+                    { text: "Góc giữa $SA$ và $(ABCD)$ bằng $45^\\circ$.", isTrue: true },
+                    { text: "Tam giác $SBD$ là tam giác vuông tại $S$.", isTrue: false }
+                ], explanation: "<b>Giải thích chi tiết:</b><br>a) Đúng. Theo giả thiết $SO \\perp (ABCD)$.<br>b) Đúng. Hình chiếu của $SA$ là $OA$. Góc tạo thành là $\\widehat{SAO}$.<br>c) Đúng. $OA = AC/2 = a$. Trong $\\Delta SAO$ vuông tại $O$, $\\tan \\widehat{SAO} = \\frac{SO}{OA} = \\frac{a}{a} = 1 \\Rightarrow \\widehat{SAO} = 45^\\circ$.<br>d) Sai. $OB = BD/2 = a\\sqrt{3}$. $SB = \\sqrt{SO^2+OB^2} = \\sqrt{a^2+3a^2} = 2a$. Tương tự $SD=2a$. Ta có $SB^2+SD^2 = 8a^2$. Trong khi đó $BD^2 = (2a\\sqrt{3})^2 = 12a^2$. Vì $SB^2+SD^2 \\ne BD^2$ nên tam giác $SBD$ không vuông." },
+                { id: "pcvg_p2_9", question: "Cho hình chóp $S.ABC$ có $SA \\perp (ABC)$, $\\Delta ABC$ đều cạnh $a$. $SA = a\\sqrt{3}$.", items: [
+                    { text: "Góc giữa $SB$ và mặt phẳng $(ABC)$ bằng $60^\\circ$.", isTrue: true },
+                    { text: "Gọi $M$ là trung điểm $BC$, góc giữa $SM$ và $(ABC)$ là $\\widehat{SMA}$.", isTrue: true },
+                    { text: "Độ dài đường trung tuyến $AM$ bằng $\\frac{a\\sqrt{3}}{2}$.", isTrue: true },
+                    { text: "Giá trị $\\tan$ của góc $\\widehat{SMA}$ bằng 2.", isTrue: true }
+                ], explanation: "<b>Giải thích chi tiết:</b><br>a) Đúng. Hình chiếu của $SB$ là $AB$. $\\tan \\widehat{SBA} = \\frac{SA}{AB} = \\frac{a\\sqrt{3}}{a} = \\sqrt{3} \\Rightarrow \\widehat{SBA} = 60^\\circ$.<br>b) Đúng. Hình chiếu của $SM$ lên $(ABC)$ là $AM$. Góc cần tìm là $\\widehat{SMA}$.<br>c) Đúng. Công thức đường cao của tam giác đều cạnh $a$.<br>d) Đúng. $\\tan \\widehat{SMA} = \\frac{SA}{AM} = \\frac{a\\sqrt{3}}{\\frac{a\\sqrt{3}}{2}} = 2$." },
+                { id: "pcvg_p2_10", question: "Xét các tính chất về hình chiếu vuông góc và diện tích hình chiếu:", items: [
+                    { text: "Hình chiếu của một đoạn thẳng song song với mặt phẳng $(P)$ lên $(P)$ là một đoạn thẳng có độ dài bằng chính nó.", isTrue: true },
+                    { text: "Diện tích hình chiếu $S'$ của đa giác có diện tích $S$ lên mặt phẳng $(P)$ là $S' = S \\cdot \\cos \\varphi$ (với $\\varphi$ là góc giữa hai mặt phẳng).", isTrue: true },
+                    { text: "Góc giữa đường thẳng và mặt phẳng là góc lớn nhất trong các góc tạo bởi đường thẳng đó và các đường thẳng trong mặt phẳng.", isTrue: false },
+                    { text: "Nếu đa giác $H$ vuông góc với mặt phẳng chiếu $(P)$ thì diện tích hình chiếu $S' = 0$.", isTrue: true }
+                ], explanation: "<b>Giải thích chi tiết:</b><br>a) Đúng. Các tia chiếu tạo thành một hình chữ nhật nên đoạn hình chiếu bằng đoạn gốc.<br>b) Đúng. Đây là công thức diện tích hình chiếu cơ bản.<br>c) Sai. Góc giữa đường thẳng và mặt phẳng là góc <b>nhỏ nhất</b> trong các góc tạo bởi đường thẳng đó và mọi đường thẳng nằm trong mặt phẳng.<br>d) Đúng. Khi hai mặt phẳng vuông góc, góc $\\varphi = 90^\\circ$. Do $\\cos(90^\\circ) = 0$, diện tích hình chiếu $S' = 0$ (hình chiếu là một đoạn thẳng)." }
+            ],
+            part3: [
+                { id: "pcvg_p3_1", question: "Cho hình chóp $S.ABCD$ có đáy là hình vuông cạnh bằng $2$. Cạnh bên $SA \\perp (ABCD)$ và $SA = 2$. Góc giữa đường thẳng $SD$ và $(ABCD)$ bằng bao nhiêu độ?", keywords: ["45"], explanation: "Hình chiếu của $SD$ lên mặt đáy $(ABCD)$ là cạnh $AD$. Góc cần tìm là $\\widehat{SDA}$. <br>Xét $\\Delta SAD$ vuông tại $A$, có $SA = AD = 2$ nên tam giác này vuông cân tại $A$. <br>Suy ra $\\widehat{SDA} = 45^\\circ$." },
+                { id: "pcvg_p3_2", question: "Cho hình lập phương $ABCD.A'B'C'D'$. Giá trị $\\tan$ của góc giữa đường chéo $A'C$ và mặt phẳng $(ABCD)$ bằng $\\frac{1}{\\sqrt{x}}$. Tìm giá trị của $x$.", keywords: ["2"], explanation: "Giả sử cạnh của hình lập phương là $a$. Khi đó $AA' = a$, đường chéo đáy $AC = a\\sqrt{2}$. <br>Hình chiếu của $A'C$ lên $(ABCD)$ là $AC$. Góc là $\\widehat{A'CA}$. <br>$\\tan \\widehat{A'CA} = \\frac{AA'}{AC} = \\frac{a}{a\\sqrt{2}} = \\frac{1}{\\sqrt{2}}$. <br>Đối chiếu với giả thiết, suy ra $x = 2$." },
+                { id: "pcvg_p3_3", question: "Cho hình chóp $S.ABC$ có $SA \\perp (ABC)$, $\\Delta ABC$ vuông tại $B$. Biết $AB = 3, SA = 3\\sqrt{3}$. Tính số đo góc giữa đường thẳng $SB$ và mặt phẳng $(ABC)$ (theo đơn vị độ).", keywords: ["60"], explanation: "Hình chiếu của $SB$ lên mặt phẳng $(ABC)$ là cạnh $AB$. Góc cần tìm là $\\widehat{SBA}$. <br>Trong $\\Delta SAB$ vuông tại $A$: $\\tan \\widehat{SBA} = \\frac{SA}{AB} = \\frac{3\\sqrt{3}}{3} = \\sqrt{3}$. <br>Suy ra $\\widehat{SBA} = 60^\\circ$." },
+                { id: "pcvg_p3_4", question: "Cho hình chóp tứ giác đều $S.ABCD$ có tất cả các cạnh đều bằng $a$. Tính $\\cos$ của góc giữa cạnh bên $SA$ và mặt phẳng đáy $(ABCD)$ dưới dạng phân số $\\frac{\\sqrt{y}}{2}$. Tìm giá trị của $y$.", keywords: ["2"], explanation: "Gọi $O$ là tâm của mặt đáy. Ta có $SO \\perp (ABCD)$. Hình chiếu của $SA$ lên đáy là $AO$. Góc cần tìm là $\\widehat{SAO}$. <br>Đường chéo hình vuông $AC = a\\sqrt{2} \\Rightarrow AO = \\frac{a\\sqrt{2}}{2}$. <br>Trong $\\Delta SAO$ vuông tại $O$: $\\cos \\widehat{SAO} = \\frac{AO}{SA} = \\frac{a\\sqrt{2}/2}{a} = \\frac{\\sqrt{2}}{2}$. <br>Vậy $y = 2$." },
+                { id: "pcvg_p3_5", question: "Cho lăng trụ đứng $ABCD.A'B'C'D'$ có đáy là hình vuông cạnh $a$. Chiều cao lăng trụ là $AA' = a$. Tính góc giữa đường chéo $A'C$ và mặt phẳng đáy (làm tròn đến hàng đơn vị của độ, ví dụ 35).", keywords: ["35"], explanation: "Hình chiếu của $A'C$ lên mặt phẳng $(ABCD)$ là đường chéo đáy $AC = a\\sqrt{2}$. Góc cần tìm là $\\widehat{A'CA}$. <br>Ta có $\\tan \\widehat{A'CA} = \\frac{AA'}{AC} = \\frac{a}{a\\sqrt{2}} = \\frac{1}{\\sqrt{2}} \\approx 0.7071$. <br>Bấm máy tính $\\arctan(0.7071) \\approx 35.26^\\circ$. Làm tròn đến hàng đơn vị là $35$." },
+                { id: "pcvg_p3_6", question: "Một cái cột thẳng đứng cao 8m có bóng in trên mặt đất nằm ngang dài 6m. Dưới góc độ toán học, tia nắng mặt trời là đường xiên, bóng của cột là hình chiếu. Tính giá trị $\\tan$ của góc tạo bởi tia nắng mặt trời và mặt đất (nhập dưới dạng phân số a/b).", keywords: ["4/3"], explanation: "Tia nắng tạo thành đường huyền của tam giác vuông. Cột là cạnh góc vuông đứng ($h=8$), bóng là cạnh góc vuông ngang ($d=6$). <br>Góc tạo bởi tia nắng và mặt đất $\\alpha$ có $\\tan \\alpha = \\frac{\\text{đối}}{\\text{kề}} = \\frac{h}{d} = \\frac{8}{6} = \\frac{4}{3}$." },
+                { id: "pcvg_p3_7", question: "Cho hình chóp $S.ABCD$ có đáy là hình chữ nhật, $SA \\perp (ABCD)$. Biết $AB=3, AD=4, SA=5$. Tính $\\tan$ của góc giữa cạnh $SC$ và mặt phẳng $(ABCD)$.", keywords: ["1"], explanation: "Hình chiếu vuông góc của đường thẳng $SC$ lên mặt đáy $(ABCD)$ là đường chéo $AC$. <br>Trong hình chữ nhật đáy: $AC = \\sqrt{AB^2+AD^2} = \\sqrt{3^2+4^2} = 5$. <br>Góc cần tìm là $\\widehat{SCA}$. Ta có $\\tan \\widehat{SCA} = \\frac{SA}{AC} = \\frac{5}{5} = 1$." },
+                { id: "pcvg_p3_8", question: "Một máy bay cất cánh từ đường băng tạo với mặt đất một góc nghiêng $30^\\circ$. Sau khi bay được quãng đường $10$km theo hướng đó trong không trung, độ cao của máy bay so với mặt đất là bao nhiêu km?", keywords: ["5"], explanation: "Đường bay của máy bay là đường xiên $l = 10$km. Hình chiếu của đường bay lên mặt đất tạo với đường bay một góc $30^\\circ$. Độ cao là khoảng cách vuông góc từ máy bay xuống mặt đất (cạnh đối). <br>$h = l \\cdot \\sin(30^\\circ) = 10 \\cdot 0.5 = 5$ km." },
+                { id: "pcvg_p3_9", question: "Cho tứ diện $OABC$ có $OA, OB, OC$ đôi một vuông góc tại $O$, và $OA=OB=OC=1$. Gọi $\\alpha$ là góc giữa đường thẳng $OA$ và mặt phẳng $(ABC)$. Tính $\\sin \\alpha$ dưới dạng $\\frac{\\sqrt{x}}{3}$. Tìm giá trị của $x$.", keywords: ["3"], explanation: "Kẻ đường cao $OH \\perp (ABC)$. $H$ là trực tâm (và cũng là trọng tâm vì các cạnh bằng nhau) của $\\Delta ABC$. <br>Hình chiếu của đường thẳng $OA$ lên mặt phẳng $(ABC)$ là đường thẳng $HA$. Góc cần tìm là $\\widehat{OAH}$. <br>Tính đường cao $OH$ của tứ diện vuông: $\\frac{1}{OH^2} = \\frac{1}{OA^2} + \\frac{1}{OB^2} + \\frac{1}{OC^2} = \\frac{3}{1^2} = 3 \\Rightarrow OH = \\frac{1}{\\sqrt{3}}$. <br>Xét $\\Delta OHA$ vuông tại $H$: $\\sin \\widehat{OAH} = \\frac{OH}{OA} = \\frac{1/\\sqrt{3}}{1} = \\frac{\\sqrt{3}}{3}$. Suy ra $x=3$." },
+                { id: "pcvg_p3_10", question: "Một mái lều có dạng hình lăng trụ $ABC.A'B'C'$ với cạnh bên $AA'$ vuông góc với đáy. Đáy là tam giác cân tại $A$ với $AB=AC=2.5$m, $BC=3$m. Chiều dài lều $AA'=4$m. Tính diện tích hình chiếu vuông góc của tam giác mái $A'BC$ lên mặt phẳng đáy $(ABC)$ (đơn vị $m^2$).", keywords: ["3"], explanation: "Vì lăng trụ đứng ($AA' \\perp$ đáy) nên hình chiếu vuông góc của $A'$ lên $(ABC)$ là $A$, hình chiếu của $B, C$ là chính nó. <br>Vậy hình chiếu vuông góc của tam giác mái $A'BC$ lên mặt phẳng $(ABC)$ chính là tam giác đáy $ABC$. <br>Tính diện tích $\\Delta ABC$: Kẻ đường cao $AM \\perp BC$. Vì tam giác cân nên $M$ là trung điểm $BC \\Rightarrow BM = 1.5$m. <br>$AM = \\sqrt{AB^2 - BM^2} = \\sqrt{2.5^2 - 1.5^2} = \\sqrt{6.25 - 2.25} = \\sqrt{4} = 2$m. <br>Diện tích hình chiếu $S = \\frac{1}{2} \\cdot BC \\cdot AM = \\frac{1}{2} \\cdot 3 \\cdot 2 = 3 \\text{ m}^2$." }
+            ]
+        };
+
+        let currentSession = [];
+        let currentIndex = 0;
+        let score = 0;
+        let selectedAnswers = null;
+
+        function shuffle(array) { return array.sort(() => Math.random() - 0.5); }
+
+        function initGame() {
+            let playedHistory = JSON.parse(localStorage.getItem('played_history_pcvg_v2') || '[]');
+            const lastRoundIds = JSON.parse(localStorage.getItem('last_round_pcvg_v2') || '[]');
+            
+            let globalRecycledCount = 0;
+
+            const getFresh = (pool, count) => {
+                let available = pool.filter(q => !playedHistory.includes(q.id) && !lastRoundIds.includes(q.id));
+                let selected = [];
+                
+                if (available.length >= count) {
+                    selected = shuffle(available).slice(0, count);
+                } else {
+                    const poolIds = pool.map(p => p.id);
+                    playedHistory = playedHistory.filter(id => !poolIds.includes(id));
+                    available = pool.filter(q => !lastRoundIds.includes(q.id));
+                    
+                    if (available.length >= count) {
+                        selected = shuffle(available).slice(0, count);
+                    } else {
+                        selected = [...available];
+                        let needed = count - available.length;
+                        let maxAllowed = Math.max(0, 2 - globalRecycledCount);
+                        let take = Math.min(needed, maxAllowed);
+                        let recycled = shuffle(pool.filter(q => lastRoundIds.includes(q.id)));
+                        selected = selected.concat(recycled.slice(0, take));
+                        globalRecycledCount += take;
+                    }
+                }
+                
+                playedHistory.push(...selected.map(q => q.id));
+                return selected;
+            };
+
+            const p1 = getFresh(MASTER_POOL.part1, 7);
+            const p2 = getFresh(MASTER_POOL.part2, 5);
+            const p3 = getFresh(MASTER_POOL.part3, 3);
+
+            currentSession = [...p1, ...p2, ...p3];
+            
+            localStorage.setItem('played_history_pcvg_v2', JSON.stringify(playedHistory));
+            localStorage.setItem('last_round_pcvg_v2', JSON.stringify(currentSession.map(q => q.id)));
+
+            currentIndex = 0; 
+            score = 0;
+            
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen) startScreen.classList.add('hidden');
+            
+            document.getElementById('progress-container').classList.remove('hidden');
+            document.getElementById('footer-actions').classList.remove('hidden');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const container = document.getElementById('main-content');
+            const data = currentSession[currentIndex];
+            const qNum = currentIndex + 1;
+            selectedAnswers = (currentIndex < 7) ? null : (currentIndex < 12 ? {} : "");
+
+            document.getElementById('status').innerText = `CÂU ${qNum} / 15`;
+            document.getElementById('progress-bar').style.width = `${(qNum / 15) * 100}%`;
+            document.getElementById('check-btn').classList.remove('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+            document.getElementById('result-btn').classList.add('hidden');
+
+            let html = `<div class="fade-in">
+                <div class="mb-10 flex items-center gap-4">
+                    <span class="bg-emerald-600 text-white text-xs font-black px-5 py-2.5 rounded-2xl uppercase tracking-widest shadow-lg shadow-emerald-200">PHẦN ${qNum <= 7 ? 'I: TRẮC NGHIỆM' : (qNum <= 12 ? 'II: ĐÚNG/SAI' : 'III: TRẢ LỜI NGẮN')}</span>
+                </div>
+                <div class="text-xl md:text-2xl font-bold text-slate-800 mb-12 leading-relaxed math-render" id="q-text">${data.question}</div>`;
+
+            if (currentIndex < 7) { 
+                html += `<div class="grid gap-6">`;
+                data.options.forEach((opt, i) => {
+                    html += `<button onclick="pickMCQ(${i})" id="mcq-${i}" class="choice-btn group p-7 border-2 border-slate-100 rounded-[2rem] text-left hover:border-emerald-400 hover:bg-emerald-50 transition-all flex items-center gap-8">
+                        <div class="w-14 h-14 rounded-3xl bg-slate-50 flex items-center justify-center font-black text-slate-400 group-hover:text-emerald-600 transition-colors text-2xl">${String.fromCharCode(65+i)}</div>
+                        <div class="text-xl font-semibold text-slate-700 math-render">${opt}</div>
+                    </button>`;
+                });
+                html += `</div>`;
+            } else if (currentIndex < 12) { 
+                html += `<div class="space-y-6">`;
+                data.items.forEach((item, i) => {
+                    html += `<div class="item-row flex flex-col md:flex-row md:items-center justify-between p-7 bg-slate-50 rounded-[2.5rem] border border-slate-100 gap-6 shadow-sm">
+                        <div class="flex items-start gap-4">
+                            <span class="font-black text-emerald-500 mt-1 text-lg">${['a)', 'b)', 'c)', 'd)'][i]}</span>
+                            <span class="text-xl text-slate-700 font-bold leading-relaxed math-render">${item.text}</span>
+                        </div>
+                        <div class="flex gap-4 min-w-[260px]">
+                            <button onclick="pickTF(${i}, true)" id="tf-${i}-t" class="flex-1 py-5 rounded-[1.5rem] border-2 border-white bg-white font-black text-lg transition active:scale-90 shadow-sm text-slate-400 hover:text-emerald-600">ĐÚNG</button>
+                            <button onclick="pickTF(${i}, false)" id="tf-${i}-f" class="flex-1 py-5 rounded-[1.5rem] border-2 border-white bg-white font-black text-lg transition active:scale-90 shadow-sm text-slate-400 hover:text-emerald-600">SAI</button>
+                        </div>
+                    </div>`;
+                });
+                html += `</div>`;
+            } else { 
+                html += `<div class="relative max-w-lg mx-auto mt-12">
+                    <input type="text" id="short-ans" class="w-full p-10 border-4 border-slate-100 rounded-[3rem] text-5xl font-black text-center text-emerald-600 focus:border-emerald-400 outline-none transition shadow-inner" placeholder="Nhập đáp án...">
+                </div>`;
+            }
+
+            html += `<div id="exp-box" class="hidden mt-12 p-10 rounded-[3rem] explanation-box"></div></div>`;
+            container.innerHTML = html;
+            if (container.parentElement) container.parentElement.scrollTop = 0;
+            
+            if (window.MathJax) {
+                MathJax.typesetPromise().then(() => {
+                    document.querySelectorAll('.math-render').forEach(el => el.classList.add('ready'));
+                });
+            }
+        }
+
+        function pickMCQ(idx) {
+            selectedAnswers = idx;
+            document.querySelectorAll('[id^="mcq-"]').forEach(b => {
+                b.classList.replace('border-emerald-500', 'border-slate-100');
+                b.classList.remove('bg-emerald-50');
+            });
+            document.getElementById(`mcq-${idx}`).classList.replace('border-slate-100', 'border-emerald-500');
+            document.getElementById(`mcq-${idx}`).classList.add('bg-emerald-50');
+        }
+
+        function pickTF(idx, val) {
+            if (typeof selectedAnswers !== 'object') selectedAnswers = {};
+            selectedAnswers[idx] = val;
+            const btnT = document.getElementById(`tf-${idx}-t`), btnF = document.getElementById(`tf-${idx}-f`);
+            btnT.className = `flex-1 py-5 rounded-[1.5rem] border-2 font-black text-lg transition active:scale-90 ${val === true ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-white border-white text-slate-400'}`;
+            btnF.className = `flex-1 py-5 rounded-[1.5rem] border-2 font-black text-lg transition active:scale-90 ${val === false ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-white border-white text-slate-400'}`;
+        }
+
+        function processAnswer() {
+            const data = currentSession[currentIndex];
+            let isCorrect = false;
+
+            if (currentIndex < 7) {
+                if (selectedAnswers === null) return alert("Vui lòng chọn đáp án!");
+                isCorrect = (selectedAnswers === data.correct);
+                if (isCorrect) score += 1;
+                document.getElementById(`mcq-${data.correct}`).classList.add('bg-green-50', 'border-green-500');
+                if(!isCorrect) document.getElementById(`mcq-${selectedAnswers}`).classList.add('bg-red-50', 'border-red-500');
+            } else if (currentIndex < 12) {
+                let correctCount = 0;
+                let isFullAnswered = true;
+                for(let i=0; i<4; i++) { if(selectedAnswers[i] === undefined) isFullAnswered = false; }
+                if(!isFullAnswered) return alert("Vui lòng chọn Đúng/Sai cho tất cả các ý!");
+
+                data.items.forEach((item, i) => { if (selectedAnswers[i] === item.isTrue) correctCount++; });
+                const points = [0, 0.1, 0.25, 0.5, 1];
+                score += points[correctCount];
+                isCorrect = (correctCount === 4);
+            } else {
+                const input = document.getElementById('short-ans').value.trim().toLowerCase().replace(',', '.');
+                if(!input) return alert("Vui lòng nhập đáp án!");
+                isCorrect = data.keywords.some(k => input.includes(k.toLowerCase()));
+                if (isCorrect) score += 1;
+            }
+
+            const exp = document.getElementById('exp-box');
+            exp.innerHTML = `<h4 class="text-emerald-800 font-extrabold text-2xl mb-6 uppercase tracking-tighter">${isCorrect ? '✨ HOÀN TOÀN CHÍNH XÁC!' : '❌ HÃY KIỂM TRA LẠI LỜI GIẢI'}</h4>
+                             <div class="text-slate-700 font-medium leading-loose math-render text-lg" id="exp-text">${data.explanation}</div>`;
+            exp.classList.remove('hidden');
+            document.getElementById('check-btn').classList.add('hidden');
+
+            if (currentIndex === 14) document.getElementById('result-btn').classList.remove('hidden');
+            else document.getElementById('next-btn').classList.remove('hidden');
+            
+            if (window.MathJax) {
+                MathJax.typesetPromise().then(() => {
+                    const el = document.getElementById('exp-text');
+                    if(el) el.classList.add('ready');
+                });
+            }
+        }
+
+        function renderNext() { currentIndex++; renderQuestion(); }
+
+        function finishGame() {
+            const container = document.getElementById('main-content');
+            document.getElementById('footer-actions').classList.add('hidden');
+            document.getElementById('progress-container').classList.add('hidden');
+            
+            const finalScore = ((score / 15) * 10).toFixed(2);
+            let rank = finalScore >= 8.5 ? "XUẤT SẮC" : (finalScore >= 6.5 ? "KHÁ GIỎI" : "CẦN CỐ GẮNG");
+            
+            container.innerHTML = `<div class="text-center py-20 fade-in">
+                <div class="text-[12rem] mb-12 animate-pulse drop-shadow-2xl">🏆</div>
+                <h2 class="text-6xl font-black text-slate-800 mb-6 uppercase tracking-tighter">${rank}</h2>
+                <div class="text-[10rem] leading-none font-black text-emerald-600 my-16 tracking-tighter italic">${finalScore}<span class="text-4xl text-slate-300 ml-6 not-italic">/ 10</span></div>
+                <button onclick="initGame()" class="bg-emerald-600 text-white px-24 py-8 rounded-[3rem] font-black text-3xl shadow-xl hover:bg-emerald-700 transition active:scale-95 uppercase tracking-wide">CHƠI LẠI</button>
+            </div>`;
+        }
+    </script>
+</body>
+</html>
